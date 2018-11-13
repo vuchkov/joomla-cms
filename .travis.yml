@@ -44,12 +44,19 @@ services:
   - memcached
   - redis-server
 
+install:
+  - if [[ $TRAVIS_PHP_VERSION = 7.3 ]]; then sudo apt-get install -y gdb; fi
+
 before_script:
   # Make sure all dev dependencies are installed
   - if [[ $RUN_UNIT_TESTS == "yes" ]]; then bash build/travis/unit-tests.sh $PWD; fi
 
 script:
   - if [[ $RUN_UNIT_TESTS == "yes" ]]; then libraries/vendor/bin/phpunit --configuration travisci-phpunit.xml; fi
+
+after_failure:
+  - COREFILE=$(find . -maxdepth 1 -name "core*" | head -n 1)
+  - if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" example -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
 
 branches:
   except:
